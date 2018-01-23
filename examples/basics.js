@@ -1,15 +1,16 @@
-var fonts = {
+var fs = require('fs');
+
+var pdfMake = require('../build/pdfmake');
+
+pdfMake.vfs = require('../build/vfs');;
+pdfMake.fonts = {
 	Roboto: {
-		normal: 'fonts/Roboto-Regular.ttf',
-		bold: 'fonts/Roboto-Medium.ttf',
-		italics: 'fonts/Roboto-Italic.ttf',
-		bolditalics: 'fonts/Roboto-MediumItalic.ttf'
+		normal     : './fonts/Roboto-Regular.ttf',
+		bold       : './fonts/Roboto-Medium.ttf',
+		italics    : './fonts/Roboto-Italic.ttf',
+		bolditalics: './fonts/Roboto-MediumItalic.ttf'
 	}
 };
-
-var PdfPrinter = require('../src/printer');
-var printer = new PdfPrinter(fonts);
-var fs = require('fs');
 
 var docDefinition = {
 	content: [
@@ -18,6 +19,7 @@ var docDefinition = {
 	]
 };
 
-var pdfDoc = printer.createPdfKitDocument(docDefinition);
-pdfDoc.pipe(fs.createWriteStream('pdfs/basics.pdf'));
-pdfDoc.end();
+var now = new Date();
+var pdfDoc = pdfMake.createPdf(docDefinition);
+pdfDoc.getBuffer((buffer) => fs.writeFileSync('pdfs/basics.pdf', buffer));
+console.log(new Date() - now);

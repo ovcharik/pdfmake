@@ -8,3 +8,6 @@ doc
 *.iws
 test-env
 nbproject
+examples/pdfs
+build/
+package-lock.json

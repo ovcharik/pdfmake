@@ -1,15 +1,16 @@
-var fonts = {
+var fs = require('fs');
+
+var pdfMake = require('../build/pdfmake');
+
+pdfMake.vfs = require('../build/vfs');;
+pdfMake.fonts = {
 	Roboto: {
-		normal: 'fonts/Roboto-Regular.ttf',
-		bold: 'fonts/Roboto-Medium.ttf',
-		italics: 'fonts/Roboto-Italic.ttf',
-		bolditalics: 'fonts/Roboto-MediumItalic.ttf'
+		normal     : './fonts/Roboto-Regular.ttf',
+		bold       : './fonts/Roboto-Medium.ttf',
+		italics    : './fonts/Roboto-Italic.ttf',
+		bolditalics: './fonts/Roboto-MediumItalic.ttf'
 	}
 };
-
-var PdfPrinter = require('../src/printer');
-var printer = new PdfPrinter(fonts);
-var fs = require('fs');
 
 var left = 20;
 var width = 130;
@@ -26,17 +27,13 @@ var chart = [{stack: chartText}, {canvas: chartLines}];
 buildXAxis();
 buildYAxis();
 
-var documentDefinition = {content: [
+var docDefinition = {content: [
 		{text: 'We sometimes don\'t know the absolute position of text', margin: [10, 0, 0, 50]},
 		{columns: [
 				{width: '50%', text: 'horizontal position is not known either'},
 				{width: '50%', stack: chart}
 			]}
 	]};
-
-var pdfDoc = printer.createPdfKitDocument(documentDefinition);
-pdfDoc.pipe(fs.createWriteStream('pdfs/relative.pdf'));
-pdfDoc.end();
 
 function buildXAxis() {
 	var xTicks = [
@@ -79,3 +76,9 @@ function horizontalLine(x, y, length) {
 function verticalLine(x, y, height) {
 	return {type: 'line', x1: x, y1: y, x2: x, y2: y + height};
 }
+
+
+var now = new Date();
+var pdfDoc = pdfMake.createPdf(docDefinition);
+pdfDoc.getBuffer((buffer) => fs.writeFileSync('pdfs/relative.pdf', buffer));
+console.log(new Date() - now);

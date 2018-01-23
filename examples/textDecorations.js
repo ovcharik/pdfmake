@@ -1,21 +1,16 @@
-var path = require("path");
+var fs = require('fs');
 
-function mp(relFontPath) {
-	return path.resolve(__dirname, relFontPath)
-}
+var pdfMake = require('../build/pdfmake');
 
-var fonts = {
+pdfMake.vfs = require('../build/vfs');;
+pdfMake.fonts = {
 	Roboto: {
-		normal: mp('./fonts/Roboto-Regular.ttf'),
-		bold: mp('./fonts/Roboto-Medium.ttf'),
-		italics: mp('./fonts/Roboto-Italic.ttf'),
-		bolditalics: mp('./fonts/Roboto-MediumItalic.ttf')
+		normal     : './fonts/Roboto-Regular.ttf',
+		bold       : './fonts/Roboto-Medium.ttf',
+		italics    : './fonts/Roboto-Italic.ttf',
+		bolditalics: './fonts/Roboto-MediumItalic.ttf'
 	}
 };
-
-var PdfPrinter = require('../src/printer');
-var printer = new PdfPrinter(fonts);
-var fs = require('fs');
 
 var ct = [];
 var lorem = 'Lorem ipsum dolor sit amet';
@@ -53,6 +48,7 @@ var docDefinition = {
 	content: ct
 };
 
-var pdfDoc = printer.createPdfKitDocument(docDefinition);
-pdfDoc.pipe(fs.createWriteStream(mp('./pdfs/textDecorations.pdf')));
-pdfDoc.end();
+var now = new Date();
+var pdfDoc = pdfMake.createPdf(docDefinition);
+pdfDoc.getBuffer((buffer) => fs.writeFileSync('pdfs/textDecorations.pdf', buffer));
+console.log(new Date() - now);

@@ -1,6 +1,6 @@
 'use strict';
 
-var PDFImage = require('pdfkit/js/image');
+var PDFImage = require('pdfkit/image');
 
 function ImageMeasure(pdfKitDoc, imageDictionary) {
 	this.pdfKitDoc = pdfKitDoc;

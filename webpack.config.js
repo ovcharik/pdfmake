@@ -1,60 +1,105 @@
-var path = require('path');
-var StringReplacePlugin = require("string-replace-webpack-plugin");
+const path = require('path');
+const webpack = require("webpack");
+
+const StringReplacePlugin = require("string-replace-webpack-plugin");
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 
 module.exports = {
-	entry: './src/browser-extensions/pdfMake.js',
+	entry: {
+		'pdfmake'    : './src/browser/pdfMake.js',
+		'pdfmake.min': './src/browser/pdfMake.js',
+
+		'vfs': './assets/index.js',
+	},
+
 	output: {
 		path: path.join(__dirname, './build'),
-		filename: 'pdfmake.js',
+		filename: '[name].js',
 		libraryTarget: 'umd'
 	},
+
 	resolve: {
+		extensions: ['*', '.js', '.json', '.coffee'],
 		alias: {
-			fs: path.join(__dirname, './src/browser-extensions/virtual-fs.js')
+			fs     : path.join(__dirname, './src/browser/virtual-fs.js'),
+			pdfkit$: path.join(__dirname, './src/pdfkit/document'),
+			pdfkit : path.join(__dirname, './src/pdfkit'),
 		}
 	},
+
+	devtool: "source-map",
+	cache: true,
+
 	module: {
-		loaders: [
-			{test: /\.json$/, loader: 'json-loader'},
-			{test: /pdfMake.js$/, loader: 'expose?pdfMake', include: [path.join(__dirname, './src/browser-extensions')]},
-			{test: /pdfkit[\/\\]js[\/\\]mixins[\/\\]fonts.js$/, loader: StringReplacePlugin.replace({
-					replacements: [
-						{
-							pattern: 'return this.font(\'Helvetica\');',
-							replacement: function () {
-								return '';
-							}
-						}
-					]})
+		rules: [
+			{ test: /\.coffee$/, loader: 'coffee-loader'       },
+			{ test: /\.json$/  , loader: 'json-loader'         },
+			{ test: /\.ttf$/   , loader: 'base64-loader'       },
+			{ test: /\.png$/   , loader: 'base64-image-loader' },
+			{ test: /\.jpg$/   , loader: 'base64-image-loader' },
+
+			// virtual fs
+			{
+				test: /fontkit[\/\\]index.js$/,
+				loader: StringReplacePlugin.replace({
+					replacements: [{
+						pattern: /fs\./g,
+						replacement: () => 'require(\'fs\').',
+					}]
+				}),
 			},
-			{test: /fontkit[\/\\]index.js$/, loader: StringReplacePlugin.replace({
-					replacements: [
-						{
-							pattern: /fs\./g,
-							replacement: function () {
-								return 'require(\'fs\').';
-							}
-						}
-					]})
-			},
-			/* hack for Web Worker support */
-			{test: /FileSaver.js$/, loader: StringReplacePlugin.replace({
-					replacements: [
-						{
+
+			// hack for Web Worker support
+			{
+				test: /file-saver[\/\\]FileSaver.js$/,
+				loader: StringReplacePlugin.replace({
+					replacements: [{
 							pattern: 'doc.createElementNS("http://www.w3.org/1999/xhtml", "a")',
-							replacement: function () {
-								return 'doc ? doc.createElementNS("http://www.w3.org/1999/xhtml", "a") : []';
-							}
-						}
-					]})
+							replacement: () => 'doc ? doc.createElementNS("http://www.w3.org/1999/xhtml", "a") : []',
+					}]
+				}),
 			},
-			{enforce: 'post', test: /fontkit[\/\\]index.js$/, loader: "transform?brfs"},
-			{enforce: 'post', test: /unicode-properties[\/\\]index.js$/, loader: "transform?brfs"},
-			{enforce: 'post', test: /linebreak[\/\\]src[\/\\]linebreaker.js/, loader: "transform?brfs"}
+
+			// browser fs
+			{
+				enforce: 'post',
+				test: [
+					/fontkit[\/\\]index\.js$/,
+					/unicode-properties[\/\\]index\.js$/,
+					/linebreak[\/\\]src[\/\\]linebreaker\.js/,
+				],
+				use: [{
+					loader: 'transform-loader',
+					options: { brfs: true },
+				}],
+			},
 		]
 	},
+
 	plugins: [
-		new StringReplacePlugin()
+		new StringReplacePlugin(),
+
+		new UglifyJsPlugin({
+			cache: true,
+			sourceMap: true,
+			test: /\.min\.js$/,
+
+			uglifyOptions: {
+				compress: {
+					drop_console: true
+				},
+				mangle: {
+					reserved: [
+						'HeadTable', 'NameTable', 'CmapTable',
+						'HheaTable', 'MaxpTable', 'HmtxTable',
+						'PostTable', 'OS2Table' , 'LocaTable',
+						'GlyfTable'
+					]
+				}
+			}
+		}),
+
+
 	]
 };
